@@ -36,6 +36,24 @@
         },
         {
           "type": "dir",
+          "name": "news",
+          "children": [
+            {
+              "type": "dir",
+              "name": "semiconductor",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "dashboard.html",
+                  "path": "docs/news/semiconductor/dashboard.html",
+                  "title": "AI·반도체 경기 대시보드"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "dir",
           "name": "shared",
           "children": [
             {
