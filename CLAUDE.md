@@ -48,7 +48,7 @@ docs/news/semiconductor/dashboard.html  # AI·반도체 대시보드 '결과물�
 
 ## 외부 프로젝트 결과물 게시 방식
 - 코드·원자료가 큰 프로젝트는 **별도 저장소**에 두고, 이 저장소에는 결과 `.html` 만 복사해 올린다
-- AI·반도체 모니터링: 로컬 `D:/ai/my_git/semiconductor-monitor` (원격 저장소는 사용자가 생성 예정, 이름/공개 여부 미정)
+- AI·반도체 모니터링: 로컬 `D:/ai/my_git/semiconductor_monitor` (원격 저장소는 사용자가 생성 예정, 이름/공개 여부 미정)
   - 갱신: 해당 프로젝트에서 `python -I -X utf8 src/update.py` → `dashboard/index.html` 생성 → 이 저장소 `docs/news/semiconductor/dashboard.html` 로 복사 → commit/push
 
 ## ⚠ Public 저장소 — 개인정보/비밀 금지 규칙
@@ -68,6 +68,6 @@ docs/news/semiconductor/dashboard.html  # AI·반도체 대시보드 '결과물�
 - [ ] GitHub 설정 확인: Pages(Branch `pages` / root), Actions Workflow permissions = Read and write
 - [ ] 뷰어(https://ntames8.github.io/Public/) 동작 확인, Action `Update manifest` 성공 확인
 - [x] semiconductor 프로젝트 분리: 별도 로컬 저장소 commit 완료, Public에는 dashboard.html 만 게시
-- [ ] semiconductor-monitor 원격 저장소 생성 후 remote 연결·push (사용자 작업)
+- [ ] semiconductor_monitor 원격 저장소 생성 후 remote 연결·push (사용자 작업)
 - [ ] `docs/stockmonitor/` 는 비어 있음(.gitkeep)
 - [ ] 주제별 폴더 재편 여부 결정 (현재: docs/honeybot, docs/stockmonitor, docs/shared, docs/hr)
