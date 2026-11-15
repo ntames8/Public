@@ -3,39 +3,6 @@
   "tree": [
     {
       "type": "dir",
-      "name": "debug",
-      "children": [
-        {
-          "type": "dir",
-          "name": "phone2_20260820",
-          "children": [
-            {
-              "type": "file",
-              "name": "diag_1204_recent_tx_nav_fail.xml",
-              "path": "debug/phone2_20260820/diag_1204_recent_tx_nav_fail.xml"
-            },
-            {
-              "type": "file",
-              "name": "diag_1407_recent_tx_nav_fail.xml",
-              "path": "debug/phone2_20260820/diag_1407_recent_tx_nav_fail.xml"
-            },
-            {
-              "type": "file",
-              "name": "README.md",
-              "path": "debug/phone2_20260820/README.md",
-              "title": "phone #2 코나아이 디버깅 기록 (2026-08-20)"
-            },
-            {
-              "type": "file",
-              "name": "ui_dump.xml",
-              "path": "debug/phone2_20260820/ui_dump.xml"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "type": "dir",
       "name": "docs",
       "children": [
         {
