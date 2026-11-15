@@ -16,7 +16,7 @@ scripts/build_manifest.py  # 저장소를 스캔해 manifest.json 생성 (Python
 .github/workflows/manifest.yml  # push 시 manifest.json 자동 갱신/커밋
 .nojekyll                  # Jekyll 처리 비활성화
 docs/<서비스>/             # 문서 (honeybot, stockmonitor, shared …)
-debug/                     # 디버깅 기록 (XML 덤프 포함)
+docs/hr/                   # 인사 관련 문서 (공개 자료 기반)
 ```
 
 ## 문서 추가 방법
@@ -39,13 +39,27 @@ debug/                     # 디버깅 기록 (XML 덤프 포함)
 - clone/pull 은 인증 불필요(Public). **push 는 GitHub 인증 필요**
 - 이 PC: git 2.35.1, credential helper `manager-core`(Windows 자격 증명 관리자) — 첫 push 때 브라우저 로그인 창이 뜸
 - 대안: PAT(Fine-grained, 해당 repo `Contents: Read and write`)를 비밀번호로 사용
-- git user: 조성현 / sunghyun1.cho@gmail.com (global 설정)
+- git user: global 설정 사용 (본문에 이메일/이름 등 개인정보를 적지 않는다)
+- 토큰 권한: `.github/workflows/*` 를 push하려면 토큰에 Workflows(`workflow`) 권한 필요. 평소엔 꺼 둘 것
+- 토큰은 `.env` 등 파일에 저장하지 않는다. Windows 자격 증명 관리자 사용, 기계(PC/Linux)마다 별도 토큰 또는 SSH 키
+- Bash 도구에서 Windows 경로는 `D:/ai/my_git/Public` 처럼 슬래시 사용 (`\` 는 이스케이프됨)
 - GitHub Action이 manifest를 커밋하므로, 이후 push 전엔 `git pull --rebase` 먼저
 
+## ⚠ Public 저장소 — 개인정보/비밀 금지 규칙
+이 저장소는 **Public**이고 Pages로 전부 노출된다. push 한 내용은 git 이력에 남아 완전히 회수할 수 없다.
+- **올리지 말 것**: 토큰·API 키·PIN·비밀번호(일부/앞부분 포함), chat_id·기기 ID, 가족/지인 이름·전화번호·이메일, 계좌·잔액·거래내역·가맹점, 앱 화면 덤프(XML/스크린샷/로그), 사내 비공개 자료
+- 디버깅 기록·덤프·로그는 올리지 않는다 (`debug/` 폴더는 이력에서도 삭제됨). 필요하면 Private 저장소나 로컬에 둔다
+- 식별자는 `**********` 로 마스킹해서 기술한다
+- **commit 전 점검**: 새/수정 파일을 훑고, 아래로 의심 패턴 검색
+  `grep -rnIE "[0-9]{8,10}:[A-Za-z0-9_-]{30,}|01[016789][-. ]?[0-9]{3,4}[-. ]?[0-9]{4}|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}|ghp_|github_pat_" --exclude-dir=.git .`
+- 문서가 공개 자료 기반인지 불명확하면 올리기 전에 사용자에게 확인한다
+- 사고 이력: 2026-11-15 debug/·텔레그램 토큰 앞부분·chat_id·가족 연락처가 노출돼 `git filter-repo` + force push 로 이력 재작성함 (commit 해시 전부 변경, 다른 clone은 새로 받아야 함). 로컬 백업 `Public_backup` 은 개인정보 포함이므로 삭제 대상
+
 ## 현황 / TODO
-- [x] 저장소 clone (2026-11-15)
-- [x] index.html 뷰어, manifest 생성 스크립트, Action 워크플로 작성
-- [ ] 최초 commit/push 및 GitHub Pages 활성화 확인 (Settings → Pages → Branch: `pages` / root)
-- [ ] 첫 push 후 Action 권한 확인 (Settings → Actions → Workflow permissions: Read and write)
+- [x] 저장소 clone, index.html 뷰어 / manifest 스크립트 / Action 작성 및 push (2026-11-15)
+- [x] `docs/hr/` 삼성전자 인사운영 분석 페이지 추가 (공개 문서)
+- [x] 개인정보 정리 및 이력 재작성, force push
+- [ ] GitHub 설정 확인: Pages(Branch `pages` / root), Actions Workflow permissions = Read and write
+- [ ] 뷰어(https://ntames8.github.io/Public/) 동작 확인, Action `Update manifest` 성공 확인
 - [ ] `docs/stockmonitor/` 는 비어 있음(.gitkeep)
-- [ ] 주제별 폴더 재편 여부 결정 (현재 서비스별: honeybot / stockmonitor / shared)
+- [ ] 주제별 폴더 재편 여부 결정 (현재: docs/honeybot, docs/stockmonitor, docs/shared, docs/hr)
