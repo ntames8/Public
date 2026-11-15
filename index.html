@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Public Docs</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1f2328; --muted: #656d76; --side: #f6f8fa;
+    --border: #d0d7de; --hover: #eaeef2; --active: #ddf4ff; --accent: #0969da;
+    --code: #f6f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117; --fg: #e6edf3; --muted: #8d96a0; --side: #161b22;
+      --border: #30363d; --hover: #21262d; --active: #17314d; --accent: #4493f8;
+      --code: #161b22;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { display: flex; background: var(--bg); color: var(--fg);
+         font: 14px/1.5 -apple-system, "Segoe UI", "Malgun Gothic", sans-serif; }
+
+  #sidebar { width: 300px; min-width: 160px; max-width: 70vw; background: var(--side);
+             border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  body.collapsed #sidebar, body.collapsed #resizer { display: none; }
+  #side-head { padding: 10px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; align-items: center; }
+  #side-head b { flex: 1; font-size: 15px; }
+  #search { margin: 8px 10px; padding: 6px 8px; border: 1px solid var(--border);
+            border-radius: 6px; background: var(--bg); color: var(--fg); }
+  #tree { flex: 1; overflow: auto; padding: 0 4px 12px; }
+  #tree ul { list-style: none; margin: 0; padding-left: 14px; }
+  #tree > ul { padding-left: 0; }
+  .row { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px;
+         cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; user-select: none; }
+  .row:hover { background: var(--hover); }
+  .row.active { background: var(--active); color: var(--accent); font-weight: 600; }
+  .row .ico { width: 16px; text-align: center; flex: none; }
+  .row .lbl { overflow: hidden; text-overflow: ellipsis; }
+  li.closed > ul { display: none; }
+  .ext { color: var(--muted); font-size: 11px; }
+
+  #resizer { width: 5px; cursor: col-resize; background: transparent; }
+  #resizer:hover { background: var(--border); }
+
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  #path { flex: 1; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  button { border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+           border-radius: 6px; padding: 3px 9px; cursor: pointer; }
+  button:hover { background: var(--hover); }
+  a.raw { color: var(--accent); text-decoration: none; font-size: 12px; }
+  #content { flex: 1; overflow: auto; position: relative; }
+  #content iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+  .md { max-width: 900px; margin: 0 auto; padding: 24px 32px 64px; }
+  .md img { max-width: 100%; }
+  .md pre, .md code { background: var(--code); border-radius: 6px; }
+  .md pre { padding: 12px; overflow: auto; }
+  .md code { padding: 1px 5px; } .md pre code { padding: 0; }
+  .md table { border-collapse: collapse; } .md th, .md td { border: 1px solid var(--border); padding: 4px 10px; }
+  .md blockquote { margin-left: 0; padding-left: 14px; border-left: 4px solid var(--border); color: var(--muted); }
+  .md a { color: var(--accent); }
+  pre.txt { margin: 0; padding: 16px; white-space: pre-wrap; word-break: break-all; font: 13px/1.5 Consolas, monospace; }
+  .msg { padding: 40px; color: var(--muted); text-align: center; }
+  @media (max-width: 700px) { #sidebar { position: absolute; z-index: 5; height: 100%; width: 80vw; } }
+</style>
+</head>
+<body>
+<aside id="sidebar">
+  <div id="side-head"><b>📚 Public Docs</b><button id="collapseAll" title="폴더 모두 접기">⊟</button><button id="expandAll" title="폴더 모두 펼치기">⊞</button><button id="hide" title="사이드바 접기">«</button></div>
+  <input id="search" type="search" placeholder="파일 검색…">
+  <nav id="tree"></nav>
+</aside>
+<div id="resizer"></div>
+<main id="main">
+  <div id="bar"><button id="show" title="사이드바 열기">☰</button><span id="path"></span><a id="raw" class="raw" target="_blank" hidden>원본 ↗</a></div>
+  <div id="content"><div class="msg">왼쪽에서 파일을 선택하세요.</div></div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const tree = $('#tree'), content = $('#content');
+const enc = p => p.split('/').map(encodeURIComponent).join('/');
+const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+let openDirs = new Set(store.get('openDirs', []));
+let files = [];
+
+const ICON = { md: '📝', markdown: '📝', html: '🌐', htm: '🌐', xml: '🧾', json: '🧾', pdf: '📕', txt: '📄', log: '📄', csv: '📊' };
+const extOf = n => (n.split('.').pop() || '').toLowerCase();
+
+function build(nodes, parentPath) {
+  const ul = document.createElement('ul');
+  for (const n of nodes) {
+    const li = document.createElement('li');
+    const row = document.createElement('div'); row.className = 'row';
+    if (n.type === 'dir') {
+      const p = parentPath ? parentPath + '/' + n.name : n.name;
+      li.dataset.dir = p;
+      if (!openDirs.has(p)) li.classList.add('closed');
+      row.innerHTML = '<span class="ico"></span><span class="lbl"></span>';
+      row.querySelector('.lbl').textContent = n.name;
+      const setIco = () => row.querySelector('.ico').textContent = li.classList.contains('closed') ? '📁' : '📂';
+      setIco();
+      row.onclick = () => { li.classList.toggle('closed'); setIco();
+        li.classList.contains('closed') ? openDirs.delete(p) : openDirs.add(p);
+        store.set('openDirs', [...openDirs]); };
+      li.append(row, build(n.children, p));
+    } else {
+      files.push(n);
+      li.dataset.path = n.path;
+      row.innerHTML = '<span class="ico"></span><span class="lbl"></span>';
+      row.querySelector('.ico').textContent = ICON[extOf(n.name)] || '📄';
+      row.querySelector('.lbl').textContent = n.name;
+      row.title = n.title ? `${n.title}\n${n.path}` : n.path;
+      row.onclick = () => { location.hash = '#' + enc(n.path); };
+      li.append(row);
+    }
+    ul.append(li);
+  }
+  return ul;
+}
+
+function setAll(open) {
+  tree.querySelectorAll('li[data-dir]').forEach(li => {
+    li.classList.toggle('closed', !open);
+    li.querySelector('.ico').textContent = open ? '📂' : '📁';
+    open ? openDirs.add(li.dataset.dir) : openDirs.delete(li.dataset.dir);
+  });
+  store.set('openDirs', [...openDirs]);
+}
+
+function revealAndMark(path) {
+  tree.querySelectorAll('.row.active').forEach(r => r.classList.remove('active'));
+  const li = [...tree.querySelectorAll('li[data-path]')].find(l => l.dataset.path === path);
+  if (!li) return;
+  li.querySelector('.row').classList.add('active');
+  for (let p = li.parentElement.closest('li'); p; p = p.parentElement.closest('li')) {
+    p.classList.remove('closed'); p.querySelector('.ico').textContent = '📂';
+  }
+  li.scrollIntoView({ block: 'nearest' });
+}
+
+function resolve(base, rel) { return new URL(rel, location.origin + '/' + enc(base)).pathname.slice(1); }
+
+async function openFile(path) {
+  revealAndMark(path);
+  $('#path').textContent = path;
+  const raw = $('#raw'); raw.href = enc(path); raw.hidden = false;
+  document.title = path.split('/').pop() + ' – Public Docs';
+  const ext = extOf(path), url = enc(path);
+  if (['html', 'htm', 'pdf'].includes(ext)) {
+    content.innerHTML = ''; const f = document.createElement('iframe'); f.src = url; content.append(f); return;
+  }
+  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'].includes(ext)) {
+    content.innerHTML = `<div class="md"><img src="${url}"></div>`; return;
+  }
+  content.innerHTML = '<div class="msg">불러오는 중…</div>';
+  try {
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(res.status);
+    const text = await res.text();
+    if (ext === 'md' || ext === 'markdown') {
+      const div = document.createElement('div'); div.className = 'md';
+      div.innerHTML = marked.parse(text);
+      // 상대 경로 이미지/링크 보정, .md 링크는 뷰어 내부 이동
+      div.querySelectorAll('img[src]').forEach(i => { const s = i.getAttribute('src');
+        if (!/^(https?:|data:|\/)/.test(s)) i.src = enc(resolve(path, s)); });
+      div.querySelectorAll('a[href]').forEach(a => { const h = a.getAttribute('href');
+        if (/^(https?:|mailto:|#)/.test(h)) { a.target = '_blank'; return; }
+        const target = resolve(path, h.split('#')[0]);
+        if (files.some(f => f.path === decodeURIComponent(target))) a.href = '#' + enc(decodeURIComponent(target));
+        else a.target = '_blank'; });
+      content.replaceChildren(div);
+    } else {
+      const pre = document.createElement('pre'); pre.className = 'txt'; pre.textContent = text;
+      content.replaceChildren(pre);
+    }
+    content.scrollTop = 0;
+  } catch (e) {
+    content.innerHTML = `<div class="msg">파일을 불러오지 못했습니다 (${e.message})</div>`;
+  }
+}
+
+function route() {
+  const p = decodeURIComponent(location.hash.slice(1));
+  if (p) openFile(p);
+}
+
+$('#search').oninput = e => {
+  const q = e.target.value.trim().toLowerCase();
+  tree.querySelectorAll('li').forEach(li => li.hidden = false);
+  if (!q) return;
+  tree.querySelectorAll('li[data-path]').forEach(li => {
+    const f = files.find(x => x.path === li.dataset.path);
+    li.hidden = !(f.path + ' ' + (f.title || '')).toLowerCase().includes(q);
+  });
+  [...tree.querySelectorAll('li[data-dir]')].reverse().forEach(li => {
+    const any = li.querySelector('li[data-path]:not([hidden])');
+    li.hidden = !any; if (any) { li.classList.remove('closed'); li.querySelector('.ico').textContent = '📂'; }
+  });
+};
+
+// 사이드바 접기/펼치기 + 폭 조절
+const setCollapsed = c => { document.body.classList.toggle('collapsed', c); store.set('collapsed', c); };
+$('#hide').onclick = () => setCollapsed(true);
+$('#show').onclick = () => setCollapsed(!document.body.classList.contains('collapsed'));
+$('#collapseAll').onclick = () => setAll(false);
+$('#expandAll').onclick = () => setAll(true);
+const side = $('#sidebar'); const w = store.get('sideW', 300); side.style.width = w + 'px';
+$('#resizer').onmousedown = e => {
+  e.preventDefault();
+  const mv = ev => { side.style.width = Math.max(160, ev.clientX) + 'px'; content.style.pointerEvents = 'none'; };
+  const up = () => { document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up);
+    content.style.pointerEvents = ''; store.set('sideW', parseInt(side.style.width)); };
+  document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+};
+if (store.get('collapsed', false)) setCollapsed(true);
+
+// manifest.json 로드
+fetch('manifest.json', { cache: 'no-cache' }).then(r => r.json()).then(m => {
+  tree.replaceChildren(build(m.tree, ''));
+  window.addEventListener('hashchange', route);
+  route();
+}).catch(e => {
+  tree.innerHTML = '<div class="msg">manifest.json 을 불러오지 못했습니다.<br>로컬에서는 <code>python -m http.server</code> 로 여세요.</div>';
+});
+</script>
+</body>
+</html>
