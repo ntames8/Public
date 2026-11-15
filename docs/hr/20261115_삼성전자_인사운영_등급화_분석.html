@@ -28,9 +28,10 @@
             }
         }
         .nav-btn.active {
-            background-color: #0f172a;
+            background-color: #1e293b;
             color: #ffffff;
-            border-color: #0f172a;
+            border-color: #1e293b;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
         }
         .tab-content {
             display: none;
@@ -43,7 +44,6 @@
             from { opacity: 0; transform: translateY(6px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        /* Custom Range Slider */
         input[type=range] {
             -webkit-appearance: none;
             background: transparent;
@@ -77,7 +77,7 @@
          3. [비공식 핵심인재] (Core Talent S/A/H): Deep dive into the top 3-5% unofficial tiering (S, A, H), 3-color early warning system, CEO mentoring, and PSU retention mechanisms.
          4. [고과 & 성과급 역학] (Appraisal & Incentives): Interactive visualization of the EX-UN 5-tier appraisal curve, cumulative salary impact simulator, and TAI/OPI calculation shift (EVA to 10% Operating Profit).
          5. [AI 평가 & 명암] (AI Tech & Shadow): Explores 'My Skills' (14,870 skills), Executive AX 20-point shift, Master/Fellow tracks, and the shadow of PIP & union distrust (75.1%).
-         Why: Users asking about "5/10/15/20 year tenure, education, and unofficial grading" need direct, comparative, and interactive answers to how these variables actually score an employee inside Samsung. -->
+         Why: Users asking about "5/10/15/20 year tenure, education, and unofficial grading" need direct, comparative, and interactive answers to how these variables actually score an employee inside Samsung. Separates the hero header from a slim, translucent sticky navigation bar to maximize reading viewport comfort. -->
     <!-- Visualization & Content Choices:
          - Promotion Session Doughnut Chart (Chart.js): Visualizes the 50:30:20 weight distribution dynamically updated by user sliders -> Goal: Inform & Simulate -> Canvas.
          - Executive Education Doughnut/Bar Chart (Chart.js): Compares All Executives vs DS Division Ph.D./Master proportions -> Goal: Compare -> Canvas.
@@ -86,50 +86,53 @@
          - Interactive HTML/CSS Grids & Cards: Used for S/A/H cards, Global BigTech comparison table, and 3-color retention monitor -> Goal: Organize -> Pure HTML/Tailwind (NO SVG/Mermaid). -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
 
-    <!-- Header Section -->
-    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    <header class="bg-slate-900 text-white border-b border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                     <div class="flex items-center gap-2">
                         <span class="px-2 py-0.5 text-xs font-semibold tracking-wider uppercase bg-blue-600 text-white rounded">HR Intelligence Report</span>
                         <span class="text-xs text-slate-400">삼성전자 내부 인사운영 심층 해부</span>
                     </div>
-                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight mt-1">삼성전자 역량·성과 등급화 시스템 분석 대시보드</h1>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight mt-1.5">삼성전자 역량·성과 등급화 시스템 분석 대시보드</h1>
                 </div>
-                <div class="flex items-center gap-3 text-xs text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+                <div class="flex items-center gap-3 text-xs text-slate-300 bg-slate-800/80 px-3.5 py-2 rounded-lg border border-slate-700 self-start md:self-auto">
                     <span>핵심 전환:</span>
                     <span class="line-through text-slate-400">연공서열·체류연한</span>
                     <span>➔</span>
                     <span class="font-semibold text-blue-400">초정밀 데이터·성과·AI 등급제</span>
                 </div>
             </div>
-
-            <!-- Navigation Tabs -->
-            <nav class="flex overflow-x-auto gap-2 mt-4 pb-1 no-scrollbar" aria-label="Tabs">
-                <button onclick="switchTab('tab-cl')" id="btn-tab-cl" class="nav-btn active whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    1. 직급(CL) & 승격 점수 모델
-                </button>
-                <button onclick="switchTab('tab-edu')" id="btn-tab-edu" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    2. 학력 & 연차(5·15·20년) 티어링
-                </button>
-                <button onclick="switchTab('tab-sah')" id="btn-tab-sah" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    3. 비공식 핵심인재(S·A·H급)
-                </button>
-                <button onclick="switchTab('tab-eval')" id="btn-tab-eval" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    4. 업적 고과(EX~UN) & 성과급
-                </button>
-                <button onclick="switchTab('tab-ai')" id="btn-tab-ai" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
-                    5. AI 스킬 평가·임원 AX·명암
-                </button>
-            </nav>
         </div>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-3">
+            <nav class="flex overflow-x-auto gap-1.5 no-scrollbar" aria-label="Tabs">
+                <button onclick="switchTab('tab-cl')" id="btn-tab-cl" class="nav-btn active whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                    1. 직급(CL) & 승격 점수 모델
+                </button>
+                <button onclick="switchTab('tab-edu')" id="btn-tab-edu" class="nav-btn whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                    2. 학력 & 연차(5·15·20년) 티어링
+                </button>
+                <button onclick="switchTab('tab-sah')" id="btn-tab-sah" class="nav-btn whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                    3. 비공식 핵심인재(S·A·H급)
+                </button>
+                <button onclick="switchTab('tab-eval')" id="btn-tab-eval" class="nav-btn whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                    4. 업적 고과(EX~UN) & 성과급
+                </button>
+                <button onclick="switchTab('tab-ai')" id="btn-tab-ai" class="nav-btn whitespace-nowrap px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">
+                    5. AI 스킬 평가·임원 AX·명암
+                </button>
+            </nav>
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="맨 위로 이동" class="hidden sm:inline-flex items-center gap-1 shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-transparent hover:border-slate-200 transition">
+                <span>↑ 맨 위로</span>
+            </button>
+        </div>
+    </div>
 
-        <!-- Executive Summary Banner (Always visible for core context) -->
+    <main id="main-content" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7">
+
         <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-8">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div class="space-y-2 max-w-3xl">
@@ -163,7 +166,6 @@
             </div>
         </section>
 
-        <!-- TAB 1: 직급(CL) & 승격 점수 모델 -->
         <div id="tab-cl" class="tab-content active space-y-8">
             <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
                 <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 연공서열의 해체와 100점 만점 '승격 세션' 점수화 구조</h3>
@@ -173,7 +175,6 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Interactive Promotion Simulator -->
                 <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-4">
@@ -185,7 +186,6 @@
                         </div>
 
                         <div class="space-y-5 my-6">
-                            <!-- Slider 1 -->
                             <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <div class="flex justify-between text-sm font-semibold mb-1">
                                     <span class="text-slate-800">1. 업무 성과 (연간 업적 고과 누적 환산)</span>
@@ -195,7 +195,6 @@
                                 <input type="range" id="slider-perf" min="0" max="50" value="42" class="w-full" oninput="updatePromoSim()">
                             </div>
 
-                            <!-- Slider 2 -->
                             <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <div class="flex justify-between text-sm font-semibold mb-1">
                                     <span class="text-slate-800">2-1. 직무 전문성: 대직무 공통 역량</span>
@@ -205,7 +204,6 @@
                                 <input type="range" id="slider-comm" min="0" max="30" value="25" class="w-full" oninput="updatePromoSim()">
                             </div>
 
-                            <!-- Slider 3 -->
                             <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
                                 <div class="flex justify-between text-sm font-semibold mb-1">
                                     <span class="text-slate-800">2-2. 직무 전문성: 소직무 특화 역량</span>
@@ -217,7 +215,6 @@
                         </div>
                     </div>
 
-                    <!-- Simulation Result Banner -->
                     <div id="promo-result-box" class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
                             <div class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">시뮬레이션 진단 결과</div>
@@ -231,7 +228,6 @@
                     </div>
                 </div>
 
-                <!-- Chart Visualization -->
                 <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
                         <h4 class="text-lg font-bold text-slate-900">승격 점수 구성 비중 시각화</h4>
@@ -247,7 +243,6 @@
                 </div>
             </div>
 
-            <!-- Global BigTech Comparison Table -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <div class="mb-4">
                     <h4 class="text-lg font-bold text-slate-900">삼성전자 CL 체계와 글로벌 빅테크 직급 호환 맵핑</h4>
@@ -312,7 +307,6 @@
             </div>
         </div>
 
-        <!-- TAB 2: 학력 & 연차(5·15·20년) 티어링 -->
         <div id="tab-edu" class="tab-content space-y-8">
             <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
                 <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 학력별 출발선 격차와 사내 경력(5년·15년·20년)의 제도적 변곡점</h3>
@@ -321,7 +315,6 @@
                 </p>
             </div>
 
-            <!-- Degree Interactive Selector & Executive Ratio Chart -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h4 class="text-lg font-bold text-slate-900 mb-1">학력별 입사 초기 티어링 및 커리어 경로 탐색기</h4>
@@ -340,11 +333,9 @@
                     </div>
 
                     <div id="degree-detail-card" class="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
-                        <!-- Populated by JS -->
                     </div>
                 </div>
 
-                <!-- Executive Education Chart -->
                 <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
                         <h4 class="text-lg font-bold text-slate-900">삼성전자 임원진 학력 분포 비교</h4>
@@ -359,7 +350,6 @@
                 </div>
             </div>
 
-            <!-- Tenure Inflection Timeline (5yr, 10yr, 15yr, 20yr) -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h4 class="text-lg font-bold text-slate-900 mb-1">사내 경력(연차)별 제도적 변곡점 타임라인</h4>
                 <p class="text-xs text-slate-500 mb-6">연차가 기계적 승진 점수를 주지는 않지만, 특정 연차 도달 시 조직 내 생존과 이동을 위한 특별한 제도적 자격이 부여됩니다.</p>
@@ -400,7 +390,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: 비공식 핵심인재(S·A·H급) -->
         <div id="tab-sah" class="tab-content space-y-8">
             <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
                 <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 상위 3~5% 천재급 인력을 핀셋 관리하는 비공식 등급제 (S급 · A급 · H급)</h3>
@@ -409,9 +398,7 @@
                 </p>
             </div>
 
-            <!-- S / A / H Tier Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- S Grade -->
                 <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-amber-500 border-x border-b border-slate-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -430,7 +417,6 @@
                     </div>
                 </div>
 
-                <!-- A Grade -->
                 <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-blue-600 border-x border-b border-slate-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -449,7 +435,6 @@
                     </div>
                 </div>
 
-                <!-- H Grade -->
                 <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-indigo-600 border-x border-b border-slate-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -469,13 +454,11 @@
                 </div>
             </div>
 
-            <!-- 3D Retention System -->
             <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                 <h4 class="text-lg font-bold text-slate-900 mb-1">핵심인재 이탈 방지를 위한 3차원 리텐션(Lock-in) 시스템</h4>
                 <p class="text-xs text-slate-500 mb-6">SK하이닉스, 마이크론 등 글로벌 경쟁사로의 인력 유출을 막기 위해 가동되는 초정밀 관리망입니다.</p>
 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- Mechanism 1: 3-Color Early Warning -->
                     <div class="p-5 rounded-xl bg-slate-50 border border-slate-200">
                         <h5 class="font-bold text-slate-900 text-sm mb-3">① 조기경보체제 (3색 신호등 시스템)</h5>
                         <div class="space-y-2.5">
@@ -503,7 +486,6 @@
                         </div>
                     </div>
 
-                    <!-- Mechanism 2: Mentor Accountability -->
                     <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
                         <div>
                             <h5 class="font-bold text-slate-900 text-sm mb-2">② 멘토 임원 연대 책임제</h5>
@@ -519,7 +501,6 @@
                         </div>
                     </div>
 
-                    <!-- Mechanism 3: PSU -->
                     <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
                         <div>
                             <h5 class="font-bold text-slate-900 text-sm mb-2">③ 성과연동 주식보상 (PSU) 도입</h5>
@@ -538,7 +519,6 @@
             </div>
         </div>
 
-        <!-- TAB 4: 업적 고과(EX~UN) & 성과급 -->
         <div id="tab-eval" class="tab-content space-y-8">
             <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
                 <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 연봉과 승진을 지배하는 5단계 고과(EX~UN) 및 OPI 성과급 산정 개편</h3>
@@ -548,7 +528,6 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- Appraisal Distribution Chart -->
                 <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h4 class="text-lg font-bold text-slate-900">연말 업적 고과 5단계 등급 구조 및 부여 비율</h4>
                     <p class="text-xs text-slate-500 mb-4">상위 10%(EX) 강제 할당 상대평가 + 나머지 90% 부서장 재량 절대평가 혼합 방식</p>
@@ -560,9 +539,7 @@
                     </div>
                 </div>
 
-                <!-- Interactive Appraisal Grade Explorer & OPI Shift -->
                 <div class="lg:col-span-6 space-y-6">
-                    <!-- Grade Detail Selector -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h4 class="text-base font-bold text-slate-900 mb-3">등급별 상세 보상 및 인사 영향 조회</h4>
                         <div class="flex flex-wrap gap-2 mb-4">
@@ -573,11 +550,9 @@
                             <button onclick="selectGrade('UN')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" id="g-btn-UN">UN (절대평가)</button>
                         </div>
                         <div id="grade-info-box" class="p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm space-y-1.5">
-                            <!-- Populated by JS -->
                         </div>
                     </div>
 
-                    <!-- TAI & OPI Shift Card -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h4 class="text-base font-bold text-slate-900 mb-1">집단 성과급(TAI · OPI) 산정 방식의 역사적 전환</h4>
                         <p class="text-xs text-slate-500 mb-4">임직원 총소득을 좌우하는 OPI(연봉 최대 50%) 재원 기준 투명화</p>
@@ -603,7 +578,6 @@
             </div>
         </div>
 
-        <!-- TAB 5: AI 스킬 평가·임원 AX·명암 -->
         <div id="tab-ai" class="tab-content space-y-8">
             <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
                 <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: AI '마이 스킬스' 초정밀 점수화, 임원 AX 배점 10배 상향, 그리고 성과주의의 그림자</h3>
@@ -612,9 +586,7 @@
                 </p>
             </div>
 
-            <!-- AI My Skills & Executive AX Chart -->
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                <!-- AI My Skills Architecture -->
                 <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-2">
@@ -664,7 +636,6 @@
                     </div>
                 </div>
 
-                <!-- Executive MBO AX Shift Chart -->
                 <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
                     <div>
                         <h4 class="text-lg font-bold text-slate-900">임원 연말 평가(MBO) 배점 구조의 지각변동</h4>
@@ -680,7 +651,6 @@
                 </div>
             </div>
 
-            <!-- Dark Side: PIP & Union Distrust -->
             <div class="bg-slate-900 text-white p-6 rounded-xl shadow-sm">
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-5">
                     <div>
@@ -719,7 +689,6 @@
 
     </main>
 
-    <!-- Footer -->
     <footer class="bg-white border-t border-slate-200 mt-12 py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
             <div>삼성전자 내부 인사운영 및 임직원 역량·성과 등급화 시스템 심층 분석 보고서 기반 인터랙티브 대시보드</div>
@@ -728,7 +697,6 @@
     </footer>
 
     <script>
-        // --- State & Data Storage ---
         const degreeData = {
             bachelor: {
                 title: "학사 (Bachelor) 입사 트랙",
@@ -798,13 +766,11 @@
             }
         };
 
-        // --- Chart Instances ---
         let promoChartInstance = null;
         let eduChartInstance = null;
         let appraisalChartInstance = null;
         let axChartInstance = null;
 
-        // --- Navigation Logic ---
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -812,14 +778,17 @@
             document.getElementById(tabId).classList.add('active');
             document.getElementById('btn-' + tabId).classList.add('active');
 
-            // Trigger chart resize/render cleanly when tab becomes visible
+            const mainTop = document.getElementById('main-content').offsetTop;
+            if (window.scrollY > mainTop) {
+                window.scrollTo({ top: mainTop - 60, behavior: 'smooth' });
+            }
+
             if (tabId === 'tab-cl' && promoChartInstance) promoChartInstance.resize();
             if (tabId === 'tab-edu' && eduChartInstance) eduChartInstance.resize();
             if (tabId === 'tab-eval' && appraisalChartInstance) appraisalChartInstance.resize();
             if (tabId === 'tab-ai' && axChartInstance) axChartInstance.resize();
         }
 
-        // --- Tab 1: Promotion Simulator ---
         function updatePromoSim() {
             const perf = parseInt(document.getElementById('slider-perf').value);
             const comm = parseInt(document.getElementById('slider-comm').value);
@@ -866,7 +835,6 @@
             }
         }
 
-        // --- Tab 2: Degree Selector ---
         function selectDegree(degKey) {
             document.querySelectorAll('.deg-btn').forEach(btn => {
                 btn.className = "deg-btn py-2.5 px-3 rounded-lg border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition";
@@ -888,7 +856,6 @@
             `;
         }
 
-        // --- Tab 4: Appraisal Grade Selector ---
         function selectGrade(gradeKey) {
             document.querySelectorAll('.grade-btn').forEach(btn => {
                 btn.className = "grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
@@ -906,12 +873,10 @@
             `;
         }
 
-        // --- Initialize Charts ---
         window.addEventListener('DOMContentLoaded', () => {
             selectDegree('bachelor');
             selectGrade('EX');
 
-            // 1. Promotion Chart (Doughnut)
             const ctxPromo = document.getElementById('promoChart').getContext('2d');
             promoChartInstance = new Chart(ctxPromo, {
                 type: 'doughnut',
@@ -944,7 +909,6 @@
                 }
             });
 
-            // 2. Executive Education Chart (Grouped Bar)
             const ctxEdu = document.getElementById('eduChart').getContext('2d');
             eduChartInstance = new Chart(ctxEdu, {
                 type: 'bar',
@@ -996,7 +960,6 @@
                 }
             });
 
-            // 3. Appraisal Distribution Chart (Bar)
             const ctxApp = document.getElementById('appraisalChart').getContext('2d');
             appraisalChartInstance = new Chart(ctxApp, {
                 type: 'bar',
@@ -1031,7 +994,6 @@
                 }
             });
 
-            // 4. Executive AX MBO Shift Chart (Horizontal Stacked Bar)
             const ctxAx = document.getElementById('axChart').getContext('2d');
             axChartInstance = new Chart(ctxAx, {
                 type: 'bar',
