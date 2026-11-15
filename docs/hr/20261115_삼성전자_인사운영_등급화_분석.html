@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>삼성전자 내부 인사운영 및 등급화 시스템 심층 분석</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 380px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 340px;
+            }
+        }
+        .nav-btn.active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 18px;
+            width: 18px;
+            border-radius: 50%;
+            background: #1d4ed8;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Chosen Palette: Warm Slate & Deep Navy Executive Palette (Background: #f8fafc, Cards: #ffffff, Primary: #0f172a, Accent: #1d4ed8, Muted: #64748b) -->
+    <!-- Application Structure Plan: 
+         The SPA is organized into 5 thematic, interactive modules rather than a linear 10-chapter dump, enabling users to explore specific facets of Samsung's HR system based on their curiosity:
+         1. [개요 & 직급/승격] (Overview & Promotion): Explains the paradigm shift from seniority to CL system & interactive 100-point Promotion Session Simulator + Global Tech Level Mapping.
+         2. [학력 & 연차 트랙] (Education & Tenure): Interactive explorer comparing Bachelor/Master/Ph.D. starting lines, executive proportions, and 5/15/20-year tenure inflection points (FA system, Senior Track).
+         3. [비공식 핵심인재] (Core Talent S/A/H): Deep dive into the top 3-5% unofficial tiering (S, A, H), 3-color early warning system, CEO mentoring, and PSU retention mechanisms.
+         4. [고과 & 성과급 역학] (Appraisal & Incentives): Interactive visualization of the EX-UN 5-tier appraisal curve, cumulative salary impact simulator, and TAI/OPI calculation shift (EVA to 10% Operating Profit).
+         5. [AI 평가 & 명암] (AI Tech & Shadow): Explores 'My Skills' (14,870 skills), Executive AX 20-point shift, Master/Fellow tracks, and the shadow of PIP & union distrust (75.1%).
+         Why: Users asking about "5/10/15/20 year tenure, education, and unofficial grading" need direct, comparative, and interactive answers to how these variables actually score an employee inside Samsung. -->
+    <!-- Visualization & Content Choices:
+         - Promotion Session Doughnut Chart (Chart.js): Visualizes the 50:30:20 weight distribution dynamically updated by user sliders -> Goal: Inform & Simulate -> Canvas.
+         - Executive Education Doughnut/Bar Chart (Chart.js): Compares All Executives vs DS Division Ph.D./Master proportions -> Goal: Compare -> Canvas.
+         - Appraisal Distribution Bar Chart (Chart.js): Shows the EX(10%) to UN curve and highlights cumulative salary/NI penalty -> Goal: Inform & Analyze -> Canvas.
+         - Executive MBO AX Shift Stacked Bar Chart (Chart.js): Contrasts past vs current 100-point executive evaluation weights (AX 2pt -> 20pt) -> Goal: Compare Change -> Canvas.
+         - Interactive HTML/CSS Grids & Cards: Used for S/A/H cards, Global BigTech comparison table, and 3-color retention monitor -> Goal: Organize -> Pure HTML/Tailwind (NO SVG/Mermaid). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <!-- Header Section -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 text-xs font-semibold tracking-wider uppercase bg-blue-600 text-white rounded">HR Intelligence Report</span>
+                        <span class="text-xs text-slate-400">삼성전자 내부 인사운영 심층 해부</span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight mt-1">삼성전자 역량·성과 등급화 시스템 분석 대시보드</h1>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-300 bg-slate-800/80 px-3 py-2 rounded-lg border border-slate-700">
+                    <span>핵심 전환:</span>
+                    <span class="line-through text-slate-400">연공서열·체류연한</span>
+                    <span>➔</span>
+                    <span class="font-semibold text-blue-400">초정밀 데이터·성과·AI 등급제</span>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex overflow-x-auto gap-2 mt-4 pb-1 no-scrollbar" aria-label="Tabs">
+                <button onclick="switchTab('tab-cl')" id="btn-tab-cl" class="nav-btn active whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    1. 직급(CL) & 승격 점수 모델
+                </button>
+                <button onclick="switchTab('tab-edu')" id="btn-tab-edu" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    2. 학력 & 연차(5·15·20년) 티어링
+                </button>
+                <button onclick="switchTab('tab-sah')" id="btn-tab-sah" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    3. 비공식 핵심인재(S·A·H급)
+                </button>
+                <button onclick="switchTab('tab-eval')" id="btn-tab-eval" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    4. 업적 고과(EX~UN) & 성과급
+                </button>
+                <button onclick="switchTab('tab-ai')" id="btn-tab-ai" class="nav-btn whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium border border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                    5. AI 스킬 평가·임원 AX·명암
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Executive Summary Banner (Always visible for core context) -->
+        <section class="bg-white rounded-xl p-6 shadow-sm border border-slate-200 mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div class="space-y-2 max-w-3xl">
+                    <h2 class="text-lg font-bold text-slate-900">핵심 결론: "시간의 축은 무너지고, 다차원 데이터의 등급판이 작동한다"</h2>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        삼성전자는 2021년 말 직급별 표준체류기간과 기계적 승격 포인트제를 전면 폐지했습니다. 대신 공식적인 <strong>CL(Career Level) 4단계 체계</strong>와 <strong>50:50 승격 세션 점수 모델</strong>을 도입했으며, 내부 심층부에는 학력별 초기 티어링, 상위 3~5%의 <strong>비공식 핵심인재(S·A·H급)</strong> 관리망, 그리고 1만 4,870개 세부 스킬을 정량화하는 <strong>AI 역량 맵핑 플랫폼</strong>이 중첩되어 임직원을 입체적으로 등급화하고 있습니다.
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-3 shrink-0">
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                        <div class="text-xs text-slate-500">공식 직급 단계</div>
+                        <div class="text-lg font-bold text-slate-900">CL1 ~ CL4</div>
+                        <div class="text-[11px] text-blue-600 font-medium">체류연한 전면 폐지</div>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                        <div class="text-xs text-slate-500">비공식 핵심인재 풀</div>
+                        <div class="text-lg font-bold text-slate-900">상위 3~5%</div>
+                        <div class="text-[11px] text-blue-600 font-medium">S급 · A급 · H급 관리</div>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                        <div class="text-xs text-slate-500">AI 역량 분해 단위</div>
+                        <div class="text-lg font-bold text-slate-900">14,870개</div>
+                        <div class="text-[11px] text-blue-600 font-medium">My Skills 데이터화</div>
+                    </div>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-center">
+                        <div class="text-xs text-slate-500">임원 AX(AI전환) 배점</div>
+                        <div class="text-lg font-bold text-slate-900">20점 / 100점</div>
+                        <div class="text-[11px] text-rose-600 font-medium">기존 대비 약 10배 상향</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 1: 직급(CL) & 승격 점수 모델 -->
+        <div id="tab-cl" class="tab-content active space-y-8">
+            <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
+                <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 연공서열의 해체와 100점 만점 '승격 세션' 점수화 구조</h3>
+                <p class="text-sm text-blue-900/80 leading-relaxed">
+                    과거 '사원-대리-과장-차장-부장' 및 TL(Technical Leader) 등 직책 기반 호칭은 '프로/님'으로 수평화되었으며, 공식 인사는 오직 4단계 커리어 레벨(CL)을 따릅니다. CL2에서 CL3로 8년, CL3에서 CL4로 10년을 채워야 했던 물리적 시간 장벽이 사라진 대신 도입된 <strong>100점 만점 승격 세션 점수 모델</strong>을 직접 시뮬레이션해 보고, 글로벌 빅테크 기업과의 직급 호환성을 비교해 보세요.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Interactive Promotion Simulator -->
+                <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h4 class="text-lg font-bold text-slate-900">승격 세션(Fast-Track) 점수 시뮬레이터</h4>
+                                <p class="text-xs text-slate-500">연차와 무관하게 조기 발탁을 결정짓는 50:50 정량 평가 모델</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md">총점 100점 만점</span>
+                        </div>
+
+                        <div class="space-y-5 my-6">
+                            <!-- Slider 1 -->
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div class="flex justify-between text-sm font-semibold mb-1">
+                                    <span class="text-slate-800">1. 업무 성과 (연간 업적 고과 누적 환산)</span>
+                                    <span class="text-blue-700"><span id="val-perf">42</span> / 50점</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-3">과거 누적 고과(EX/VG 등) 및 부서 내 실적 기여도 수치화 반영</p>
+                                <input type="range" id="slider-perf" min="0" max="50" value="42" class="w-full" oninput="updatePromoSim()">
+                            </div>
+
+                            <!-- Slider 2 -->
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div class="flex justify-between text-sm font-semibold mb-1">
+                                    <span class="text-slate-800">2-1. 직무 전문성: 대직무 공통 역량</span>
+                                    <span class="text-indigo-700"><span id="val-comm">25</span> / 30점</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-3">사업부 등 넓은 범위의 전사적 공통 직무 역량 진단 결과</p>
+                                <input type="range" id="slider-comm" min="0" max="30" value="25" class="w-full" oninput="updatePromoSim()">
+                            </div>
+
+                            <!-- Slider 3 -->
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <div class="flex justify-between text-sm font-semibold mb-1">
+                                    <span class="text-slate-800">2-2. 직무 전문성: 소직무 특화 역량</span>
+                                    <span class="text-teal-700"><span id="val-spec">18</span> / 20점</span>
+                                </div>
+                                <p class="text-xs text-slate-500 mb-3">팀 내 세부 파트 전문성 평가를 통한 실무 특화 스킬 및 기여도</p>
+                                <input type="range" id="slider-spec" min="0" max="20" value="18" class="w-full" oninput="updatePromoSim()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Simulation Result Banner -->
+                    <div id="promo-result-box" class="p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <div class="text-xs font-semibold text-emerald-800 uppercase tracking-wider">시뮬레이션 진단 결과</div>
+                            <div id="promo-verdict" class="text-base font-bold text-emerald-950 mt-0.5">조기 발탁 승진(Fast-Track) 유력권</div>
+                            <div id="promo-desc" class="text-xs text-emerald-800 mt-0.5">체류 연한과 무관하게 30대 상무·조기 CL4 승격 심사를 통과할 수 있는 최상위 점수대입니다.</div>
+                        </div>
+                        <div class="text-right shrink-0">
+                            <span class="text-3xl font-extrabold text-emerald-700" id="promo-total">85</span>
+                            <span class="text-sm font-semibold text-emerald-700">점</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Visualization -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-lg font-bold text-slate-900">승격 점수 구성 비중 시각화</h4>
+                        <p class="text-xs text-slate-500 mb-4">업무 성과(50%)와 직무 전문성(50%)의 균형 구조</p>
+                        <div class="chart-container">
+                            <canvas id="promoChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-600 space-y-1.5">
+                        <p>• <strong>과거 제도 폐지:</strong> OPIc 어학 성적 및 고과 포인트 기계적 누적 방식 폐기</p>
+                        <p>• <strong>현재 핵심:</strong> 직무 전문성(대직무 30 + 소직무 20)이 절반을 차지하여 실무 역량 검증 강화</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Global BigTech Comparison Table -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <div class="mb-4">
+                    <h4 class="text-lg font-bold text-slate-900">삼성전자 CL 체계와 글로벌 빅테크 직급 호환 맵핑</h4>
+                    <p class="text-xs text-slate-500 mt-1">삼성전자의 CL 구조는 실리콘밸리 테크 기업의 레벨(Level) 체계 및 성과 연동 보상 구조와 맥락을 같이합니다.</p>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                                <th class="py-3 px-4 font-bold">삼성전자 (CL)</th>
+                                <th class="py-3 px-4 font-semibold">과거 전통 직급</th>
+                                <th class="py-3 px-4 font-semibold">구글 (Google)</th>
+                                <th class="py-3 px-4 font-semibold">아마존 (Amazon)</th>
+                                <th class="py-3 px-4 font-semibold">애플 (Apple)</th>
+                                <th class="py-3 px-4 font-semibold">보상 구조 특징</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-slate-900">CL1</td>
+                                <td class="py-3 px-4 text-slate-600">고졸/전문대졸 사원</td>
+                                <td class="py-3 px-4 text-slate-600">지원 직군 / 하위 레벨</td>
+                                <td class="py-3 px-4 text-slate-600">지원 직군</td>
+                                <td class="py-3 px-4 text-slate-400">-</td>
+                                <td class="py-3 px-4 text-xs text-slate-500">기본급 중심 안정형</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-blue-700">CL2</td>
+                                <td class="py-3 px-4 text-slate-600">대졸 사원 ~ 대리</td>
+                                <td class="py-3 px-4 text-slate-600">L3 (신입) ~ L4 (주니어)</td>
+                                <td class="py-3 px-4 text-slate-600">L4 ~ L5</td>
+                                <td class="py-3 px-4 text-slate-600">ICT2 ~ ICT3</td>
+                                <td class="py-3 px-4 text-xs text-slate-500">학사 입사 출발선 (석사는 3년차 대우)</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-indigo-700">CL3</td>
+                                <td class="py-3 px-4 text-slate-600">과장 ~ 차장 (책임)</td>
+                                <td class="py-3 px-4 text-slate-600">L5 (시니어) ~ L6 (스태프)</td>
+                                <td class="py-3 px-4 text-slate-600">L6</td>
+                                <td class="py-3 px-4 text-slate-600">ICT4 ~ ICT5</td>
+                                <td class="py-3 px-4 text-xs text-slate-500">박사 입사 출발선 / 핵심 실무 리더</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50">
+                                <td class="py-3 px-4 font-bold text-purple-700">CL4</td>
+                                <td class="py-3 px-4 text-slate-600">부장 (수석)</td>
+                                <td class="py-3 px-4 text-slate-600">L6 ~ L7 (시니어 스태프)</td>
+                                <td class="py-3 px-4 text-slate-600">L7 ~ L8</td>
+                                <td class="py-3 px-4 text-slate-600">ICT6</td>
+                                <td class="py-3 px-4 text-xs text-slate-500">마스터(Master) 트랙 진입 자격</td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 bg-slate-50/50">
+                                <td class="py-3 px-4 font-bold text-slate-900">임원 (상무 이상)</td>
+                                <td class="py-3 px-4 text-slate-600">디렉터 / VP 급</td>
+                                <td class="py-3 px-4 text-slate-600">L8 이상</td>
+                                <td class="py-3 px-4 text-slate-600">L8 이상 (디렉터)</td>
+                                <td class="py-3 px-4 text-slate-600">M 레벨 (관리직)</td>
+                                <td class="py-3 px-4 text-xs text-rose-600 font-medium">변동 성과급(OPI/PSU) 비중 폭발적 증가</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: 학력 & 연차(5·15·20년) 티어링 -->
+        <div id="tab-edu" class="tab-content space-y-8">
+            <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
+                <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 학력별 출발선 격차와 사내 경력(5년·15년·20년)의 제도적 변곡점</h3>
+                <p class="text-sm text-blue-900/80 leading-relaxed">
+                    공식적으로는 능력주의를 표방하지만, R&D 비중이 절대적인 삼성전자에서는 <strong>학력(학사·석사·박사)</strong>이 입사 초기 직급(CL)과 향후 임원·연구위원 승진의 유리천장을 결정짓는 핵심 지표로 작동합니다. 또한, 입사 5년 차, 15~20년 차 등 <strong>사내 경력 연차</strong>는 단순 누적 점수가 아닌 새로운 이동 권한(사내 FA)과 정년 연장(시니어 트랙)이라는 '자격'으로 환산됩니다.
+                </p>
+            </div>
+
+            <!-- Degree Interactive Selector & Executive Ratio Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-7 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h4 class="text-lg font-bold text-slate-900 mb-1">학력별 입사 초기 티어링 및 커리어 경로 탐색기</h4>
+                    <p class="text-xs text-slate-500 mb-4">학위를 선택하여 입사 직급, 초기 처우, 임원 승진 확률의 차이를 확인하세요.</p>
+
+                    <div class="grid grid-cols-3 gap-2 mb-6">
+                        <button onclick="selectDegree('bachelor')" id="deg-btn-bachelor" class="deg-btn py-2.5 px-3 rounded-lg border-2 border-blue-600 bg-blue-50 text-blue-900 font-bold text-sm transition">
+                            학사 (Bachelor)
+                        </button>
+                        <button onclick="selectDegree('master')" id="deg-btn-master" class="deg-btn py-2.5 px-3 rounded-lg border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">
+                            석사 (Master)
+                        </button>
+                        <button onclick="selectDegree('phd')" id="deg-btn-phd" class="deg-btn py-2.5 px-3 rounded-lg border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition">
+                            박사 (Ph.D.)
+                        </button>
+                    </div>
+
+                    <div id="degree-detail-card" class="bg-slate-50 rounded-xl p-5 border border-slate-200 space-y-4">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Executive Education Chart -->
+                <div class="lg:col-span-5 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-lg font-bold text-slate-900">삼성전자 임원진 학력 분포 비교</h4>
+                        <p class="text-xs text-slate-500 mb-4">전사 임원(약 1,100명) 대비 반도체(DS) 부문 박사 임원 비중</p>
+                        <div class="chart-container">
+                            <canvas id="eduChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600">
+                        * 선행 R&D 및 반도체(DS) 핵심 기술 조직에서는 <strong>임원의 절반 가까이(47%)가 박사 학위 소지자</strong>로, 상위 직급(CL4 이상) 진입의 강력한 백그라운드로 작용합니다.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tenure Inflection Timeline (5yr, 10yr, 15yr, 20yr) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h4 class="text-lg font-bold text-slate-900 mb-1">사내 경력(연차)별 제도적 변곡점 타임라인</h4>
+                <p class="text-xs text-slate-500 mb-6">연차가 기계적 승진 점수를 주지는 않지만, 특정 연차 도달 시 조직 내 생존과 이동을 위한 특별한 제도적 자격이 부여됩니다.</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 relative">
+                        <div class="inline-block px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded mb-2">입사 3년 미만</div>
+                        <h5 class="font-bold text-slate-900 text-base mb-1">이탈 집중 관리 구간</h5>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            핵심인재 퇴직률의 <strong>70%</strong>가 발생하는 시기입니다. 조기경보체제(3색등)의 집중 모니터링 대상이며, 초기 온보딩 및 멘토링이 가동됩니다.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border-2 border-blue-200 bg-blue-50/40 relative">
+                        <div class="inline-block px-2.5 py-1 bg-blue-600 text-white text-xs font-bold rounded mb-2">입사 5년 차</div>
+                        <h5 class="font-bold text-slate-900 text-base mb-1">사내 FA(Free-Agent) 자격</h5>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            한 직무/부서 만 5년 근무 시 타 부서로 자유롭게 이동할 수 있는 공식 권리 부여. 최근 사업부문 간(예: 파운드리↔메모리) 이동까지 확대되어 MZ세대 이탈을 방어합니다.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border border-slate-200 bg-slate-50 relative">
+                        <div class="inline-block px-2.5 py-1 bg-indigo-100 text-indigo-800 text-xs font-bold rounded mb-2">입사 10~15년 차</div>
+                        <h5 class="font-bold text-slate-900 text-base mb-1">리더십·전문가 갈림길</h5>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            과거 CL3~CL4 승격 연한 구간. 현재는 승격 세션을 통해 관리직(파트장·그룹장·임원 후보)과 기술 전문가 트랙으로 본격 분화되며 누적 고과 격차가 극대화됩니다.
+                        </p>
+                    </div>
+
+                    <div class="p-4 rounded-xl border-2 border-emerald-200 bg-emerald-50/40 relative">
+                        <div class="inline-block px-2.5 py-1 bg-emerald-700 text-white text-xs font-bold rounded mb-2">입사 15~20년 차 이상</div>
+                        <h5 class="font-bold text-slate-900 text-base mb-1">시니어 트랙 (정년 후 재고용)</h5>
+                        <p class="text-xs text-slate-600 leading-relaxed">
+                            고성과자·기술 명장·SW 엑스퍼트 등 대체 불가능한 전문성을 입증한 고연차 인력에게 정년 이후에도 계속 근무할 수 있는 고용 연장 트랙이 열립니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: 비공식 핵심인재(S·A·H급) -->
+        <div id="tab-sah" class="tab-content space-y-8">
+            <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
+                <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 상위 3~5% 천재급 인력을 핀셋 관리하는 비공식 등급제 (S급 · A급 · H급)</h3>
+                <p class="text-sm text-blue-900/80 leading-relaxed">
+                    일반 임직원이 CL 직급과 5단계 업적 고과 궤도 안에서 경쟁한다면, 삼성전자 내부 심층부에는 기업의 미래를 좌우할 소수 정예를 별도 분류하는 강력한 <strong>비공식 핵심인재(Core Talent) 티어링</strong>이 존재합니다. 매년 3월 엄격한 재평가를 통해 전체 인력의 3~5% 이내로 희소성을 통제하며, 사장단 1:1 멘토링과 파격적인 주식 보상(PSU)으로 이탈을 원천 봉쇄합니다.
+                </p>
+            </div>
+
+            <!-- S / A / H Tier Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- S Grade -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-amber-500 border-x border-b border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-3 py-1 bg-amber-100 text-amber-900 font-extrabold text-sm rounded-full">S급 (Super)</span>
+                            <span class="text-xs font-semibold text-slate-500">전사 100명 안팎 극소수</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-900 mb-2">최고 핵심 인재 (CEO급 예우)</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            "천재 한 사람이 십만 명을 먹여 살린다"는 철학 아래 관리되는 글로벌 독보적 역량 보유자입니다. 주로 해외 빅테크에서 영입된 최고급 기술자나 사업 총괄급 거물 인사들이 해당합니다.
+                        </p>
+                    </div>
+                    <div class="bg-amber-50/70 p-3.5 rounded-lg border border-amber-200/70 space-y-1.5 text-xs">
+                        <div class="font-bold text-amber-950">특별 처우 및 관리</div>
+                        <p class="text-amber-900">• 직급이 낮아도 계열사 사장단·CEO에 준하는 연봉</p>
+                        <p class="text-amber-900">• <strong>사장단(CEO급)이 직접 1:1 전담 멘토링</strong> 수행</p>
+                    </div>
+                </div>
+
+                <!-- A Grade -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-blue-600 border-x border-b border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-3 py-1 bg-blue-100 text-blue-900 font-extrabold text-sm rounded-full">A급 (Ace)</span>
+                            <span class="text-xs font-semibold text-slate-500">차세대 경영 리더군</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-900 mb-2">핵심 고성과자 (미래 임원 풀)</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            현재 조직 내에서 국제 규모의 탁월한 실적을 창출하고 있으며, 향후 삼성전자를 이끌 차세대 임원으로 성장할 잠재력을 검증받은 핵심 그룹입니다.
+                        </p>
+                    </div>
+                    <div class="bg-blue-50/70 p-3.5 rounded-lg border border-blue-200/70 space-y-1.5 text-xs">
+                        <div class="font-bold text-blue-950">특별 처우 및 관리</div>
+                        <p class="text-blue-900">• 주로 부장(CL4)급이나 신임 상무급에서 발탁</p>
+                        <p class="text-blue-900">• <strong>사업부장이 직접 1:1 전담 멘토</strong>로 매칭</p>
+                    </div>
+                </div>
+
+                <!-- H Grade -->
+                <div class="bg-white rounded-xl p-6 shadow-sm border-t-4 border-t-indigo-600 border-x border-b border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-3 py-1 bg-indigo-100 text-indigo-900 font-extrabold text-sm rounded-full">H급 (High Potential)</span>
+                            <span class="text-xs font-semibold text-slate-500">잠재력 우수 신진 인재</span>
+                        </div>
+                        <h4 class="text-lg font-bold text-slate-900 mb-2">해외 명문대 박사·특수 경력직</h4>
+                        <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                            해외 유수 대학 박사급 인력이나 희소 전문 경력을 지닌 젊은 인재들로, 입사 시점부터 H급으로 분류됩니다. 단기 실적보다 장기 성장 잠재력을 높이 평가받습니다.
+                        </p>
+                    </div>
+                    <div class="bg-indigo-50/70 p-3.5 rounded-lg border border-indigo-200/70 space-y-1.5 text-xs">
+                        <div class="font-bold text-indigo-950">특별 처우 및 관리</div>
+                        <p class="text-indigo-900">• 성과 입증 시 A급 및 최고 S급으로 상향 이동</p>
+                        <p class="text-indigo-900">• <strong>부장(수석)급 관리자와 1:1 매칭</strong> 집중 케어</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3D Retention System -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h4 class="text-lg font-bold text-slate-900 mb-1">핵심인재 이탈 방지를 위한 3차원 리텐션(Lock-in) 시스템</h4>
+                <p class="text-xs text-slate-500 mb-6">SK하이닉스, 마이크론 등 글로벌 경쟁사로의 인력 유출을 막기 위해 가동되는 초정밀 관리망입니다.</p>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Mechanism 1: 3-Color Early Warning -->
+                    <div class="p-5 rounded-xl bg-slate-50 border border-slate-200">
+                        <h5 class="font-bold text-slate-900 text-sm mb-3">① 조기경보체제 (3색 신호등 시스템)</h5>
+                        <div class="space-y-2.5">
+                            <div class="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-slate-200">
+                                <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">그린 (Green) - 이상 없음</div>
+                                    <div class="text-[11px] text-slate-500">안정적 몰입 상태, 정기 모니터링 유지</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-slate-200">
+                                <span class="w-3.5 h-3.5 rounded-full bg-amber-400 shrink-0"></span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">옐로 (Yellow) - 가벼운 징후</div>
+                                    <div class="text-[11px] text-slate-500">업무 불만·스트레스 감지, 멘토 면담 가동</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 bg-white p-2.5 rounded-lg border border-rose-200">
+                                <span class="w-3.5 h-3.5 rounded-full bg-rose-600 shrink-0"></span>
+                                <div>
+                                    <div class="text-xs font-bold text-rose-800">레드 (Red) - 퇴직 징후군</div>
+                                    <div class="text-[11px] text-rose-600">인사팀 즉각 개입, 특별 인센티브·휴직 제안</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mechanism 2: Mentor Accountability -->
+                    <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h5 class="font-bold text-slate-900 text-sm mb-2">② 멘토 임원 연대 책임제</h5>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                                S·A·H급 인재와 1:1 매칭된 사장단·사업부장·수석급 멘토는 정기 식사와 면담을 통해 밀착 관리합니다.
+                            </p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-slate-200">
+                            <div class="text-xs font-bold text-rose-700 mb-1">강력한 구속력 조항</div>
+                            <p class="text-xs text-slate-600 leading-relaxed">
+                                만약 멘티인 핵심인재가 경쟁사로 이직하거나 퇴사할 경우, <strong>전담 멘토인 고위 임원에게도 관리 소홀의 인사상 책임을 묻는</strong> 엄격한 페널티가 작동합니다.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Mechanism 3: PSU -->
+                    <div class="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+                        <div>
+                            <h5 class="font-bold text-slate-900 text-sm mb-2">③ 성과연동 주식보상 (PSU) 도입</h5>
+                            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                                퇴직 의사를 밝힌 핵심인력에게 수천만 원~억대 특별 인센티브와 학위 지원은 물론, 현대적 장기 록인 장치를 제공합니다.
+                            </p>
+                        </div>
+                        <div class="bg-blue-900 text-white p-4 rounded-lg">
+                            <div class="text-xs font-bold text-blue-300 mb-1">PSU (Performance Stock Units)</div>
+                            <p class="text-xs text-slate-200 leading-relaxed">
+                                향후 <strong>3년간 자사 주가 상승률에 연동해 자사주를 지급</strong>하는 제도입니다. 최장 3년 이상의 의무 재직을 강제하고 경쟁사 전직을 원천 차단합니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: 업적 고과(EX~UN) & 성과급 -->
+        <div id="tab-eval" class="tab-content space-y-8">
+            <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
+                <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: 연봉과 승진을 지배하는 5단계 고과(EX~UN) 및 OPI 성과급 산정 개편</h3>
+                <p class="text-sm text-blue-900/80 leading-relaxed">
+                    매년 연말 부여되는 5단계 업적 고과는 복리 개념의 <strong>누적 연봉제</strong>와 결합해 입사 동기 간 거대한 임금 격차를 만듭니다. 특히 단 한 번의 하위 고과(NI)가 가져오는 치명적 불이익과, 최근 노사 합의로 불투명한 EVA(경제적 부가가치)에서 <strong>'영업이익의 10%'</strong>로 투명화된 OPI 성과급 체계를 분석합니다.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- Appraisal Distribution Chart -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h4 class="text-lg font-bold text-slate-900">연말 업적 고과 5단계 등급 구조 및 부여 비율</h4>
+                    <p class="text-xs text-slate-500 mb-4">상위 10%(EX) 강제 할당 상대평가 + 나머지 90% 부서장 재량 절대평가 혼합 방식</p>
+                    <div class="chart-container">
+                        <canvas id="appraisalChart"></canvas>
+                    </div>
+                    <div class="mt-4 bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-900">
+                        <strong>⚠️ NI(Need Improvement) 등급의 치명적 낙인:</strong> 당해 연봉 동결 또는 삭감(-5~-10%)과 향후 수년간 승진 누락을 초래합니다. 최근 3년 평균 점수를 산정하므로 <strong>NI 1회 만회를 위해 연속 2회 이상 EX/VG</strong>를 받아야 합니다.
+                    </div>
+                </div>
+
+                <!-- Interactive Appraisal Grade Explorer & OPI Shift -->
+                <div class="lg:col-span-6 space-y-6">
+                    <!-- Grade Detail Selector -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="text-base font-bold text-slate-900 mb-3">등급별 상세 보상 및 인사 영향 조회</h4>
+                        <div class="flex flex-wrap gap-2 mb-4">
+                            <button onclick="selectGrade('EX')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-blue-600 text-white" id="g-btn-EX">EX (상위 10%)</button>
+                            <button onclick="selectGrade('VG')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" id="g-btn-VG">VG (상위 25%)</button>
+                            <button onclick="selectGrade('GD')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" id="g-btn-GD">GD (55~60%)</button>
+                            <button onclick="selectGrade('NI')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" id="g-btn-NI">NI (5~10%)</button>
+                            <button onclick="selectGrade('UN')" class="grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200" id="g-btn-UN">UN (절대평가)</button>
+                        </div>
+                        <div id="grade-info-box" class="p-4 rounded-lg bg-slate-50 border border-slate-200 text-sm space-y-1.5">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- TAI & OPI Shift Card -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h4 class="text-base font-bold text-slate-900 mb-1">집단 성과급(TAI · OPI) 산정 방식의 역사적 전환</h4>
+                        <p class="text-xs text-slate-500 mb-4">임직원 총소득을 좌우하는 OPI(연봉 최대 50%) 재원 기준 투명화</p>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                            <div class="p-3.5 rounded-lg bg-slate-100 border border-slate-200 opacity-80">
+                                <div class="text-xs font-bold text-slate-500 mb-1">과거 기준 (불투명성 갈등)</div>
+                                <div class="text-sm font-bold text-slate-800">EVA (경제적 부가가치)</div>
+                                <p class="text-xs text-slate-600 mt-1">세후 영업이익에서 막대한 반도체 설비 투자비·자본비용을 차감해 호실적에도 성과급이 축소되는 모순 발생</p>
+                            </div>
+                            <div class="p-3.5 rounded-lg bg-blue-50 border-2 border-blue-500">
+                                <div class="text-xs font-bold text-blue-700 mb-1">개편 기준 (DS부문 필두 합의)</div>
+                                <div class="text-sm font-bold text-blue-950">영업이익의 10% 연동</div>
+                                <p class="text-xs text-blue-900 mt-1">공시되는 영업이익에 직관적으로 연동하여 경영진의 투자 비용 전가를 차단하고 예측 가능성 확보</p>
+                            </div>
+                        </div>
+                        <div class="text-xs text-slate-500 flex justify-between bg-slate-50 px-3 py-2 rounded border border-slate-200">
+                            <span>• <strong>TAI (목표달성장려금):</strong> 반기별 최대 기본급 100%</span>
+                            <span>• <strong>OPI (초과이익성과급):</strong> 연 1회 최대 연봉 50%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: AI 스킬 평가·임원 AX·명암 -->
+        <div id="tab-ai" class="tab-content space-y-8">
+            <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-5">
+                <h3 class="text-base font-bold text-blue-950 mb-1">섹션 안내: AI '마이 스킬스' 초정밀 점수화, 임원 AX 배점 10배 상향, 그리고 성과주의의 그림자</h3>
+                <p class="text-sm text-blue-900/80 leading-relaxed">
+                    삼성전자 인사 시스템의 최전선은 AI가 임직원의 역량을 <strong>1만 4,870개의 세부 스킬</strong>로 해체해 점수화하는 '마이 스킬스' 플랫폼과, 임원 평가에서 <strong>AX(AI 전환) 배점을 20점으로 상향</strong>한 초강수 정책입니다. 동시에 철저한 데이터 서열화가 초래한 저성과자 퇴출 프로그램(PIP) 논란과 75.1%에 달하는 고과 불신 등 노사 갈등의 이면을 함께 조망합니다.
+                </p>
+            </div>
+
+            <!-- AI My Skills & Executive AX Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <!-- AI My Skills Architecture -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-lg font-bold text-slate-900">AI 역량 등급화 플랫폼 '마이 스킬스(My Skills)'</h4>
+                            <span class="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-xs font-bold rounded">DX부문 도입</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-5">상급자 한 명의 주관적 '고과 테러'를 방어하는 동료평가제와 결합된 디지털 인사점수판</p>
+
+                        <div class="space-y-3">
+                            <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-500">STEP 1. 빅데이터 딥러닝 분석</div>
+                                    <div class="text-sm font-bold text-slate-900 mt-0.5">사내외 활동 이력 텍스트 마이닝</div>
+                                    <div class="text-xs text-slate-600">업적 이력, 프로젝트, 특허·논문, 자격증 통합 분석</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-extrabold text-indigo-700">112만 건+</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3.5 rounded-lg bg-indigo-50/60 border border-indigo-200 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-indigo-700">STEP 2. 원자 단위 스킬(Skill) 해체</div>
+                                    <div class="text-sm font-bold text-slate-900 mt-0.5">16개 직무를 세부 역량 지표로 점수화</div>
+                                    <div class="text-xs text-slate-600">개인별 보유 기술 수준을 레이더 차트로 정밀 맵핑</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-extrabold text-indigo-700">14,870개</span>
+                                </div>
+                            </div>
+
+                            <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+                                <div>
+                                    <div class="text-xs font-bold text-slate-500">STEP 3. 맞춤형 교육 및 사내 FA 매칭</div>
+                                    <div class="text-sm font-bold text-slate-900 mt-0.5">부족 역량 보완 및 최적 부서 배치</div>
+                                    <div class="text-xs text-slate-600">AI 스킬 점수 기반 신규 프로젝트·부서 이동 연결</div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-lg font-extrabold text-slate-800">2,187개 과정</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600">
+                        * <strong>다면진단 보완:</strong> 직원이 직접 지정한 동료 3명의 서술형 <strong>동료평가</strong>와 리더십 상향 진단이 상급자의 자의적 평가를 교차 검증합니다.
+                    </div>
+                </div>
+
+                <!-- Executive MBO AX Shift Chart -->
+                <div class="lg:col-span-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <h4 class="text-lg font-bold text-slate-900">임원 연말 평가(MBO) 배점 구조의 지각변동</h4>
+                        <p class="text-xs text-slate-500 mb-4">재무 성과 배점을 10점 삭감하고 AX(AI 전환) 역량을 20점으로 약 10배 상향</p>
+                        <div class="chart-container">
+                            <canvas id="axChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-600 space-y-1">
+                        <p>• <strong>실질적 증명 요구:</strong> 단순 AI 교육 이수가 아닌, AI 에이전트 도입을 통한 워크플로우 재설계 및 인력 운영 효율성(FTE)·비용 절감 수치를 증명해야 승진·보상 가능</p>
+                        <p>• <strong>연구개발 전문가 트랙:</strong> 조직 관리 대신 원천 기술에 매진하는 <strong>마스터(상무급 대우, 평균 6년 재임)</strong> 및 <strong>펠로우(부사장급 예우)</strong> 별도 선발</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dark Side: PIP & Union Distrust -->
+            <div class="bg-slate-900 text-white p-6 rounded-xl shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-5">
+                    <div>
+                        <span class="px-2.5 py-0.5 bg-rose-600 text-white text-xs font-bold rounded">성과주의의 그림자 & 노사 갈등</span>
+                        <h4 class="text-lg font-bold mt-1.5">초정밀 등급제의 이면: 저성과자 관리(PIP)와 평가 불신</h4>
+                    </div>
+                    <div class="flex items-center gap-4 bg-slate-800 px-4 py-2.5 rounded-lg border border-slate-700">
+                        <div class="text-center">
+                            <div class="text-2xl font-extrabold text-rose-400">75.1%</div>
+                            <div class="text-[11px] text-slate-400">사내 고과 불신 응답</div>
+                        </div>
+                        <div class="h-8 w-px bg-slate-700"></div>
+                        <div class="text-center">
+                            <div class="text-2xl font-extrabold text-amber-400">67.9%</div>
+                            <div class="text-[11px] text-slate-400">평가 기준 비객관적 응답</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div class="bg-slate-800/70 p-5 rounded-lg border border-slate-700/80 space-y-2">
+                        <h5 class="font-bold text-rose-300 text-base">역량향상프로그램(PIP)과 퇴출 압박 논란</h5>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            3년간 2회 이상 하위 고과(NI 등)를 받은 인력은 내부적으로 '성장한계인력'으로 분류되어 <strong>PIP(Performance Improvement Plan)</strong> 대상이 됩니다. 사측은 직무 재교육 기회라 설명하나, 노조와 대상자들은 과도한 과제 부여, 급여 동결, 하위 부서 전보를 통한 사실상의 사직 유도 프로그램으로 인식하며 법적 다툼이 이어지고 있습니다.
+                        </p>
+                    </div>
+                    <div class="bg-slate-800/70 p-5 rounded-lg border border-slate-700/80 space-y-2">
+                        <h5 class="font-bold text-amber-300 text-base">평가자 편향 리스크와 창사 첫 총파업의 도화선</h5>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            금속노조 실태조사 결과 육아휴직·산재 복귀자, 여성 근로자, 노조 가입자에게 부서장이 자의적으로 하위 고과를 부여한다는 증언이 제기되었습니다. 수치화된 점수 시스템의 주관적 편향 불만은 전국삼성전자노동조합(전삼노)이 고과 기준 공개 및 상대평가 폐지를 요구하며 창사 이래 첫 총파업에 돌입하는 핵심 배경이 되었습니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-4 text-xs text-slate-500">
+            <div>삼성전자 내부 인사운영 및 임직원 역량·성과 등급화 시스템 심층 분석 보고서 기반 인터랙티브 대시보드</div>
+            <div>데이터 기준: 미래지향 인사제도 혁신안, DX 마이 스킬스, 임원 MBO 개편 및 노사 합의 자료 종합</div>
+        </div>
+    </footer>
+
+    <script>
+        // --- State & Data Storage ---
+        const degreeData = {
+            bachelor: {
+                title: "학사 (Bachelor) 입사 트랙",
+                badge: "입사 직급: CL2 (사원급 출발)",
+                badgeColor: "bg-slate-200 text-slate-800",
+                summary: "표준적인 실무 경력 경로를 밟으며, 현업에서 8~10년 이상의 실무 성과와 승격 세션을 통해 관리자로 성장합니다.",
+                points: [
+                    "<strong>초기 배치 리스크:</strong> 대규모 공채 특성상 본인의 세부 전공이나 희망과 무관한 부서로 배치될 가능성이 상대적으로 높습니다.",
+                    "<strong>승진 및 성장:</strong> 연공서열 폐지로 탁월한 고과(EX) 누적 시 조기 발탁이 가능하나, 선행 R&D 핵심 보직 진입에는 석·박사 대비 높은 장벽이 존재합니다.",
+                    "<strong>임원 비중:</strong> 전사 임원 중 약 28~34% 수준을 차지하며 주로 영업·마케팅·제조·지원 부문에서 두각을 나타냅니다."
+                ]
+            },
+            master: {
+                title: "석사 (Master) 입사 트랙",
+                badge: "입사 직급: CL2 (3년 차 대우 출발)",
+                badgeColor: "bg-blue-100 text-blue-900",
+                summary: "대학원에서의 2년 연구 기간을 사내 실무 경력으로 공식 인정받아, 학사 입사자 대비 2년의 시간적·호봉적 이점을 안고 시작합니다.",
+                points: [
+                    "<strong>초기 처우 이점:</strong> CL2 3년 차에 준하는 연봉 및 경력 연수를 인정받아 차기 직급(CL3) 승격 심사 대상 도달 시점이 빠릅니다.",
+                    "<strong>전공 연계성:</strong> 대학원 세부 전공과 직결된 연구개발(R&D) 및 설계 부서로 배치될 확률이 높아 직무 전문성(50점) 확보에 유리합니다.",
+                    "<strong>임원 비중:</strong> 삼성전자 전체 임원진의 약 37~40%를 차지하는 가장 두터운 핵심 리더 허리층입니다."
+                ]
+            },
+            phd: {
+                title: "박사 (Ph.D.) 입사 트랙",
+                badge: "입사 직급: CL3 (책임급 이상 특급 출발)",
+                badgeColor: "bg-indigo-100 text-indigo-900",
+                summary: "입사 즉시 CL3(과·차장급) 이상의 상위 직급을 부여받으며, 전공 희소성에 따라 수석급 대우 및 비공식 핵심인재(H급)로 분류됩니다.",
+                points: [
+                    "<strong>압도적 출발선:</strong> 학사 입사자가 8~10년간 도달해야 하는 CL3 직급에서 커리어를 시작하며, 입사 초기부터 H급 잠재력 우수 인재로 별도 관리됩니다.",
+                    "<strong>핵심 조직 지배력:</strong> 반도체(DS) 부문 임원의 절반 가까이(47%)가 박사 출신이며, 기술 전문가 최고 트랙인 마스터·펠로우 진입의 사실상 필수 조건입니다.",
+                    "<strong>연봉 및 보상:</strong> 기본급 테이블 자체가 높게 책정되며, 핵심 기술 영입 인력의 경우 별도의 사이닝 보너스 및 RSU/PSU 대상이 됩니다."
+                ]
+            }
+        };
+
+        const gradeDetails = {
+            EX: {
+                name: "EX (Excellent) - 최상위 탁월 성과자",
+                ratio: "상위 10% (강제 할당 상대평가)",
+                color: "text-blue-700",
+                impact: "최고 수준의 연봉 성과 인상률 적용 (복리 누적). 승격 세션(업무성과 50점)에서 만점에 가까운 점수를 확보하여 조기 발탁 승진(Fast-Track)의 1순위 대상이 됩니다."
+            },
+            VG: {
+                name: "VG (Very Good) - 우수 성과자",
+                ratio: "상위 25% 내외 (비율 제한 완화 추세)",
+                color: "text-emerald-700",
+                impact: "전사 평균을 상회하는 연봉 인상률을 적용받습니다. 승격 심사 시 안정적인 가점을 확보하며, 핵심인재(A급) 후보군 유지의 기본 요건으로 작용합니다."
+            },
+            GD: {
+                name: "GD (Good) - 표준 성과자",
+                ratio: "약 55~60% (부서장 재량 절대평가)",
+                color: "text-slate-700",
+                impact: "기본 물가 상승분 및 전사 기본 인상률 수준의 연봉 인상이 이루어집니다. 조직의 허리를 담당하는 표준 등급으로, 승격을 위해서는 직무 전문성 진단(50점)에서 탁월한 점수가 필요합니다."
+            },
+            NI: {
+                name: "NI (Need Improvement) - 개선 필요 인력",
+                ratio: "약 5~10% 이내",
+                color: "text-rose-700",
+                impact: "당해 연봉 동결 또는 삭감(-5~-10%) 및 차기 승급 전면 누락. 최근 3년 고과 평균을 산정하므로 NI 1회 기록 시 연속 2회 이상 EX/VG를 받아야 회복 가능하며, 3년 내 2회 누적 시 PIP(저성과자 프로그램) 대상이 됩니다."
+            },
+            UN: {
+                name: "UN (Unsatisfactory) - 불만족 저성과자",
+                ratio: "강제 비율 없음 (절대평가)",
+                color: "text-red-800",
+                impact: "심각한 고용 불안정성에 직면하며 즉각적인 직무 재배치 및 역량향상프로그램(PIP) 집중 관리 대상자로 분류됩니다."
+            }
+        };
+
+        // --- Chart Instances ---
+        let promoChartInstance = null;
+        let eduChartInstance = null;
+        let appraisalChartInstance = null;
+        let axChartInstance = null;
+
+        // --- Navigation Logic ---
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+
+            document.getElementById(tabId).classList.add('active');
+            document.getElementById('btn-' + tabId).classList.add('active');
+
+            // Trigger chart resize/render cleanly when tab becomes visible
+            if (tabId === 'tab-cl' && promoChartInstance) promoChartInstance.resize();
+            if (tabId === 'tab-edu' && eduChartInstance) eduChartInstance.resize();
+            if (tabId === 'tab-eval' && appraisalChartInstance) appraisalChartInstance.resize();
+            if (tabId === 'tab-ai' && axChartInstance) axChartInstance.resize();
+        }
+
+        // --- Tab 1: Promotion Simulator ---
+        function updatePromoSim() {
+            const perf = parseInt(document.getElementById('slider-perf').value);
+            const comm = parseInt(document.getElementById('slider-comm').value);
+            const spec = parseInt(document.getElementById('slider-spec').value);
+            const total = perf + comm + spec;
+
+            document.getElementById('val-perf').innerText = perf;
+            document.getElementById('val-comm').innerText = comm;
+            document.getElementById('val-spec').innerText = spec;
+            document.getElementById('promo-total').innerText = total;
+
+            const box = document.getElementById('promo-result-box');
+            const verdict = document.getElementById('promo-verdict');
+            const desc = document.getElementById('promo-desc');
+            const totalEl = document.getElementById('promo-total');
+
+            if (total >= 80) {
+                box.className = "p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                verdict.className = "text-base font-bold text-emerald-950 mt-0.5";
+                verdict.innerText = "조기 발탁 승진(Fast-Track) 유력권";
+                desc.className = "text-xs text-emerald-800 mt-0.5";
+                desc.innerText = "체류 연한과 무관하게 30대 상무·조기 CL4 승격 심사를 통과할 수 있는 최상위 점수대입니다.";
+                totalEl.className = "text-3xl font-extrabold text-emerald-700";
+            } else if (total >= 65) {
+                box.className = "p-4 rounded-lg bg-blue-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                verdict.className = "text-base font-bold text-blue-950 mt-0.5";
+                verdict.innerText = "안정적 승격 심사 통과권";
+                desc.className = "text-xs text-blue-800 mt-0.5";
+                desc.innerText = "업적 고과와 직무 전문성이 균형을 이루고 있어 표준적인 승격 트랙을 순조롭게 통과하는 수준입니다.";
+                totalEl.className = "text-3xl font-extrabold text-blue-700";
+            } else {
+                box.className = "p-4 rounded-lg bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3";
+                verdict.className = "text-base font-bold text-amber-950 mt-0.5";
+                verdict.innerText = "승격 보류 및 역량 보완 필요";
+                desc.className = "text-xs text-amber-800 mt-0.5";
+                desc.innerText = "과거처럼 연차만 채워서는 승진할 수 없습니다. 고과 개선 또는 소직무 특화 전문성 입증이 필요합니다.";
+                totalEl.className = "text-3xl font-extrabold text-amber-700";
+            }
+
+            if (promoChartInstance) {
+                const remaining = 100 - total;
+                promoChartInstance.data.datasets[0].data = [perf, comm, spec, remaining];
+                promoChartInstance.update();
+            }
+        }
+
+        // --- Tab 2: Degree Selector ---
+        function selectDegree(degKey) {
+            document.querySelectorAll('.deg-btn').forEach(btn => {
+                btn.className = "deg-btn py-2.5 px-3 rounded-lg border border-slate-200 bg-white text-slate-600 font-semibold text-sm hover:bg-slate-50 transition";
+            });
+            const activeBtn = document.getElementById('deg-btn-' + degKey);
+            activeBtn.className = "deg-btn py-2.5 px-3 rounded-lg border-2 border-blue-600 bg-blue-50 text-blue-900 font-bold text-sm transition";
+
+            const data = degreeData[degKey];
+            const card = document.getElementById('degree-detail-card');
+            card.innerHTML = `
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+                    <h5 class="text-base font-bold text-slate-900">${data.title}</h5>
+                    <span class="px-2.5 py-1 rounded text-xs font-bold ${data.badgeColor}">${data.badge}</span>
+                </div>
+                <p class="text-sm text-slate-700 font-medium leading-relaxed">${data.summary}</p>
+                <ul class="space-y-2 text-xs text-slate-600 pt-1">
+                    ${data.points.map(p => `<li class="flex items-start gap-2"><span class="text-blue-600 font-bold">▪</span><span>${p}</span></li>`).join('')}
+                </ul>
+            `;
+        }
+
+        // --- Tab 4: Appraisal Grade Selector ---
+        function selectGrade(gradeKey) {
+            document.querySelectorAll('.grade-btn').forEach(btn => {
+                btn.className = "grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+            });
+            const activeBtn = document.getElementById('g-btn-' + gradeKey);
+            activeBtn.className = "grade-btn px-3.5 py-1.5 rounded-md text-xs font-bold bg-blue-600 text-white transition";
+
+            const g = gradeDetails[gradeKey];
+            document.getElementById('grade-info-box').innerHTML = `
+                <div class="flex flex-wrap justify-between items-center gap-2 border-b border-slate-200 pb-2">
+                    <span class="font-bold ${g.color}">${g.name}</span>
+                    <span class="text-xs font-semibold px-2 py-0.5 bg-white border border-slate-200 rounded text-slate-600">${g.ratio}</span>
+                </div>
+                <p class="text-xs text-slate-700 leading-relaxed pt-1">${g.impact}</p>
+            `;
+        }
+
+        // --- Initialize Charts ---
+        window.addEventListener('DOMContentLoaded', () => {
+            selectDegree('bachelor');
+            selectGrade('EX');
+
+            // 1. Promotion Chart (Doughnut)
+            const ctxPromo = document.getElementById('promoChart').getContext('2d');
+            promoChartInstance = new Chart(ctxPromo, {
+                type: 'doughnut',
+                data: {
+                    labels: ['업무 성과 (최대 50)', '대직무 공통역량 (최대 30)', '소직무 특화역량 (최대 20)', '미달 점수'],
+                    datasets: [{
+                        data: [42, 25, 18, 15],
+                        backgroundColor: ['#1d4ed8', '#4338ca', '#0d9488', '#e2e8f0'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '62%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 11, family: "'Noto Sans KR', sans-serif" } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return ` ${context.label}: ${context.raw}점`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. Executive Education Chart (Grouped Bar)
+            const ctxEdu = document.getElementById('eduChart').getContext('2d');
+            eduChartInstance = new Chart(ctxEdu, {
+                type: 'bar',
+                data: {
+                    labels: ['전사 임원 평균', 'DS(반도체) 부문 임원'],
+                    datasets: [
+                        {
+                            label: '박사 (Ph.D.)',
+                            data: [30.5, 47.0],
+                            backgroundColor: '#312e81',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '석사 (Master)',
+                            data: [38.5, 33.0],
+                            backgroundColor: '#2563eb',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '학사 이하 (Bachelor)',
+                            data: [31.0, 20.0],
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: {
+                            stacked: true,
+                            max: 100,
+                            ticks: { callback: val => val + '%' }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 11, family: "'Noto Sans KR', sans-serif" } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label}: 약 ${ctx.raw}%`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 3. Appraisal Distribution Chart (Bar)
+            const ctxApp = document.getElementById('appraisalChart').getContext('2d');
+            appraisalChartInstance = new Chart(ctxApp, {
+                type: 'bar',
+                data: {
+                    labels: ['EX (탁월)', 'VG (우수)', 'GD (표준)', 'NI (개선필요)', 'UN (불만족)'],
+                    datasets: [{
+                        label: '인원 배분 비율 (%)',
+                        data: [10, 25, 57, 7, 1],
+                        backgroundColor: ['#1d4ed8', '#10b981', '#64748b', '#e11d48', '#881337'],
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 70,
+                            ticks: { callback: val => val + '%' }
+                        },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` 배분 비중: 약 ${ctx.raw}%`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 4. Executive AX MBO Shift Chart (Horizontal Stacked Bar)
+            const ctxAx = document.getElementById('axChart').getContext('2d');
+            axChartInstance = new Chart(ctxAx, {
+                type: 'bar',
+                data: {
+                    labels: ['기존 임원 MBO', '개편 임원 MBO'],
+                    datasets: [
+                        {
+                            label: 'AX (AI 전환) 역량 배점',
+                            data: [3, 20],
+                            backgroundColor: '#2563eb',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '재무·경영 성과 (10점 삭감)',
+                            data: [60, 50],
+                            backgroundColor: '#0f172a',
+                            borderRadius: 4
+                        },
+                        {
+                            label: '조직 관리 및 기타 지표',
+                            data: [37, 30],
+                            backgroundColor: '#94a3b8',
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            max: 100,
+                            ticks: { callback: val => val + '점' }
+                        },
+                        y: { stacked: true, grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { boxWidth: 12, font: { size: 11, family: "'Noto Sans KR', sans-serif" } }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}점`
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

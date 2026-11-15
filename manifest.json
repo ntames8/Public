@@ -57,6 +57,18 @@
         },
         {
           "type": "dir",
+          "name": "hr",
+          "children": [
+            {
+              "type": "file",
+              "name": "20261115_삼성전자_인사운영_등급화_분석.html",
+              "path": "docs/hr/20261115_삼성전자_인사운영_등급화_분석.html",
+              "title": "삼성전자 내부 인사운영 및 등급화 시스템 심층 분석"
+            }
+          ]
+        },
+        {
+          "type": "dir",
           "name": "shared",
           "children": [
             {
